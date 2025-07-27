@@ -1,1 +1,1 @@
-A chatbot using a Large Language Model and Vector Database
+A ChatBot Using a Large Language Model and Vector Database and Groq.
