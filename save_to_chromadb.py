@@ -6,11 +6,9 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_core.documents import Document
 import os
 
-# === CONFIG ===
 JSONL_FILE = "changi_airport_content.jsonl"
 CHROMA_DIR = "chroma_db_store"
 
-# ✅ Load JSONL
 documents = []
 with open(JSONL_FILE, "r", encoding="utf-8") as f:
     for line in f:
@@ -22,25 +20,20 @@ with open(JSONL_FILE, "r", encoding="utf-8") as f:
                 metadata={"source": item["url"], "title": item["title"]}
             ))
 
-print(f"✅ Loaded {len(documents)} documents")
+print(f"Loaded {len(documents)} documents")
 
-# ✅ Split into Chunks
 splitter = RecursiveCharacterTextSplitter(
     chunk_size=1000,
     chunk_overlap=200
 )
 chunks = splitter.split_documents(documents)
-print(f"✅ Total chunks: {len(chunks)}")
-import json
+print(f"Total chunks: {len(chunks)}")
 
-
-# ✅ Load Embedding Model
 embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
-# ✅ Store in ChromaDB
 if os.path.exists(CHROMA_DIR):
     import shutil
-    shutil.rmtree(CHROMA_DIR)  # clear old db
+    shutil.rmtree(CHROMA_DIR) 
 
 vectordb = Chroma.from_documents(
     documents=chunks,
@@ -49,4 +42,4 @@ vectordb = Chroma.from_documents(
 )
 vectordb.persist()
 
-print(f"✅ Successfully stored in ChromaDB at {CHROMA_DIR}")
+print(f"Successfully stored in ChromaDB at {CHROMA_DIR}")

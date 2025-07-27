@@ -9,16 +9,13 @@ from langchain_core.prompts import PromptTemplate
 from langchain_groq import ChatGroq
 from langchain.chains import RetrievalQA
 
-# --- 🔧 CONFIG ---
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 CHROMA_PATH = "chroma_db_store"
 COLLECTION_NAME = "langchain"
 MODEL_NAME = "llama3-70b-8192"
 
-# --- 🔎 Embeddings ---
 embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
-# --- 💾 ChromaDB Vector Store ---
 chroma_client = chromadb.PersistentClient(
     path=CHROMA_PATH,
     settings=Settings(anonymized_telemetry=False)
@@ -30,13 +27,12 @@ vectordb = Chroma(
     persist_directory=CHROMA_PATH
 )
 
-# --- 📚 Retriever (MMR improves diversity & precision) ---
 retriever = vectordb.as_retriever(
-    search_type="mmr",           # ✅ Maximal Marginal Relevance
+    search_type="mmr",          
     search_kwargs={"k": 5}
 )
 
-# --- 🧠 Custom Prompt ---
+
 prompt_template = PromptTemplate.from_template("""
 You are a helpful assistant with deep knowledge about Changi Airport and Jewel Singapore.
 
@@ -50,13 +46,11 @@ Question: {question}
 Answer:
 """)
 
-# --- 🧠 Groq LLM ---
 llm = ChatGroq(
     groq_api_key=GROQ_API_KEY,
     model_name=MODEL_NAME
 )
 
-# --- 🔗 Retrieval-QA Chain ---
 qa_chain = RetrievalQA.from_chain_type(
     llm=llm,
     retriever=retriever,
@@ -65,15 +59,14 @@ qa_chain = RetrievalQA.from_chain_type(
     return_source_documents=True
 )
 
-# --- 🖼️ Streamlit UI ---
 st.set_page_config(page_title="Changi Airport Chatbot", page_icon="🛫")
-st.title("🛫 Changi Airport AI Chatbot")
+st.title("Changi Airport AI Chatbot")
 st.markdown("Ask anything based on Changi Airport and Jewel Changi website content.")
 
-query = st.text_input("💬 Ask your question:", placeholder="e.g. What are the facilities in Terminal 3?")
+query = st.text_input("Ask your question:", placeholder="e.g. What are the facilities in Terminal 3?")
 
 if query:
-    with st.spinner("Thinking... 💭"):
+    with st.spinner("Thinking..."):
         response = qa_chain.invoke({"query": query})
         # Extract the top source URL
         top_doc = response["source_documents"][0] if response["source_documents"] else None
@@ -86,7 +79,7 @@ if query:
         
         st.success(answer)
 
-        with st.expander("📄 Source Documents (Read More)"):
+        with st.expander("Source Documents (Read More)"):
             for i, doc in enumerate(response["source_documents"]):
                 source_url = doc.metadata.get("source", "Unknown")
                 snippet = doc.page_content[:300].replace("\n", " ")
