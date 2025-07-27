@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 
-API_URL = "http://localhost:8000/ask"
+API_URL = "https://changi-airport-chatbot.onrender.com/ask"  # ✅ correct
 
 st.set_page_config(page_title="Changi Airport Chatbot", page_icon="🛫")
 st.title("🛫 Changi Airport AI Chatbot")
