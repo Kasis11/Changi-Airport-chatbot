@@ -107,8 +107,13 @@ async def ask_question(query: Query):
         ]
     }
 
+@app.get("/")
+def read_root():
+    return {"message": "🚀 Changi Airport Chatbot API is running!"}
+
 if __name__ == "__main__":
     import uvicorn
     import os
     port = int(os.environ.get("PORT", 10000))  # Render sets this automatically
     uvicorn.run("main:app", host="0.0.0.0", port=port)
+
