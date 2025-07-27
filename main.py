@@ -12,19 +12,16 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# === Configuration ===
 CHROMA_PATH = "chroma_db_store"
 COLLECTION_NAME = "langchain"
 MODEL_NAME = "llama3-70b-8192"
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-# === Embedding + Vectorstore ===
-embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-MiniLM-L3-v2")
 chroma_client = chromadb.PersistentClient(path=CHROMA_PATH, settings=Settings(anonymized_telemetry=False))
 vectordb = Chroma(client=chroma_client, collection_name=COLLECTION_NAME, embedding_function=embedding, persist_directory=CHROMA_PATH)
 retriever = vectordb.as_retriever(search_type="mmr", search_kwargs={"k": 5})
 
-# === Prompt + LLM ===
 prompt_template = PromptTemplate.from_template("""
 You are a helpful assistant with deep knowledge about Changi Airport and Jewel Singapore.
 
@@ -48,10 +45,8 @@ qa_chain = RetrievalQA.from_chain_type(
     return_source_documents=True
 )
 
-# === FastAPI app ===
 app = FastAPI()
 
-# === CORS Middleware ===
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -59,26 +54,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# === Request model ===
 class Query(BaseModel):
     question: str
-    
+
 @app.post("/ask")
 async def ask_question(query: Query):
     result = qa_chain.invoke({"query": query.question})
 
-    # Debug print to check metadata
     print("==== Source Documents Metadata ====")
     for doc in result["source_documents"]:
         print(doc.metadata)
 
-    # Attempt to extract top source URL
     source_url = None
     if result["source_documents"]:
         top_doc = result["source_documents"][0]
         source_url = top_doc.metadata.get("source", "Unknown")
 
-    # Append to answer
     answer = result["result"]
     if source_url and source_url != "Unknown":
         answer += f"\n\n🔗 [Read more here]({source_url})"

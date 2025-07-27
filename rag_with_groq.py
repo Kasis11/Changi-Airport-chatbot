@@ -15,7 +15,7 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 MODEL_NAME = "llama3-70b-8192"
 
 # === Embedding Model ===
-embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-MiniLM-L3-v2")
 
 chroma_client = chromadb.PersistentClient(
     path=CHROMA_DIR,

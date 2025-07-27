@@ -29,11 +29,13 @@ splitter = RecursiveCharacterTextSplitter(
 chunks = splitter.split_documents(documents)
 print(f"Total chunks: {len(chunks)}")
 
-embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-MiniLM-L3-v2")
 
 if os.path.exists(CHROMA_DIR):
     import shutil
     shutil.rmtree(CHROMA_DIR) 
+
+
 
 vectordb = Chroma.from_documents(
     documents=chunks,
