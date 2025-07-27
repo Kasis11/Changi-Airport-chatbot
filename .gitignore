@@ -1,0 +1,5 @@
+# Ignore environment variable file
+.env
+
+# Ignore ChromaDB folder
+chroma_db_store/
