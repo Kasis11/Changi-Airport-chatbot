@@ -1,63 +1,95 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from pydantic import BaseModel
-import os
-from langchain_groq import ChatGroq
-from langchain.chains import RetrievalQA
+from fastapi.middleware.cors import CORSMiddleware
+import os, chromadb
+from chromadb.config import Settings
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
-import chromadb
-from chromadb.config import Settings
+from langchain_core.prompts import PromptTemplate
+from langchain_groq import ChatGroq
+from langchain.chains import RetrievalQA
+from dotenv import load_dotenv
 
-# --- Config
+load_dotenv()
+
+# === Configuration ===
 CHROMA_PATH = "chroma_db_store"
 COLLECTION_NAME = "langchain"
 MODEL_NAME = "llama3-70b-8192"
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-# --- Initialize FastAPI
-app = FastAPI()
-
-# --- Embedding Model
+# === Embedding + Vectorstore ===
 embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+chroma_client = chromadb.PersistentClient(path=CHROMA_PATH, settings=Settings(anonymized_telemetry=False))
+vectordb = Chroma(client=chroma_client, collection_name=COLLECTION_NAME, embedding_function=embedding, persist_directory=CHROMA_PATH)
+retriever = vectordb.as_retriever(search_type="mmr", search_kwargs={"k": 5})
 
-# --- Load Chroma Vector DB
-chroma_client = chromadb.PersistentClient(
-    path=CHROMA_PATH,
-    settings=Settings(anonymized_telemetry=False)
-)
-vectordb = Chroma(
-    client=chroma_client,
-    collection_name=COLLECTION_NAME,
-    embedding_function=embedding,
-    persist_directory=CHROMA_PATH
-)
+# === Prompt + LLM ===
+prompt_template = PromptTemplate.from_template("""
+You are a helpful assistant with deep knowledge about Changi Airport and Jewel Singapore.
 
-# --- Load LLM
-llm = ChatGroq(
-    groq_api_key=GROQ_API_KEY,
-    model_name=MODEL_NAME
-)
+Use ONLY the context below to answer the user's question. Do not make up answers.
 
-# --- Retrieval QA
+Context:
+{context}
+
+Question: {question}
+
+Answer:
+""")
+
+llm = ChatGroq(groq_api_key=GROQ_API_KEY, model_name=MODEL_NAME)
+
 qa_chain = RetrievalQA.from_chain_type(
     llm=llm,
-    retriever=vectordb.as_retriever(search_kwargs={"k": 3}),
+    retriever=retriever,
+    chain_type="stuff",
+    chain_type_kwargs={"prompt": prompt_template},
     return_source_documents=True
 )
 
-# --- Request Model
-class QueryRequest(BaseModel):
-    question: str
+# === FastAPI app ===
+app = FastAPI()
 
-# --- API Endpoint
+# === CORS Middleware ===
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# === Request model ===
+class Query(BaseModel):
+    question: str
+    
 @app.post("/ask")
-def ask_question(req: QueryRequest):
-    response = qa_chain({"query": req.question})
-    answer = response["result"]
-    sources = [
-        doc.metadata.get("source", "unknown") for doc in response["source_documents"]
-    ]
+async def ask_question(query: Query):
+    result = qa_chain.invoke({"query": query.question})
+
+    # Debug print to check metadata
+    print("==== Source Documents Metadata ====")
+    for doc in result["source_documents"]:
+        print(doc.metadata)
+
+    # Attempt to extract top source URL
+    source_url = None
+    if result["source_documents"]:
+        top_doc = result["source_documents"][0]
+        source_url = top_doc.metadata.get("source", "Unknown")
+
+    # Append to answer
+    answer = result["result"]
+    if source_url and source_url != "Unknown":
+        answer += f"\n\n🔗 [Read more here]({source_url})"
+
     return {
         "answer": answer,
-        "sources": sources
+        "source_url": source_url,
+        "sources": [
+            {
+                "url": doc.metadata.get("source", "Unknown"),
+                "excerpt": doc.page_content[:300].replace("\n", " ")
+            } for doc in result["source_documents"]
+        ]
     }
