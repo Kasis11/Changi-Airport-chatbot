@@ -23,9 +23,13 @@ with open(JSONL_FILE, "r", encoding="utf-8") as f:
 print(f"Loaded {len(documents)} documents")
 
 splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000,
-    chunk_overlap=200
+    chunk_size=500,
+    chunk_overlap=50
 )
+
+# Optionally reduce loaded documents
+documents = documents[:30]  # only keep top 30
+
 chunks = splitter.split_documents(documents)
 print(f"Total chunks: {len(chunks)}")
 

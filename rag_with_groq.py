@@ -30,7 +30,7 @@ vectordb = Chroma(
 
 retriever = vectordb.as_retriever(
     search_type="mmr",
-    search_kwargs={"k": 2}
+    search_kwargs={"k": 1}
 )
 
 custom_prompt = PromptTemplate.from_template("""

@@ -34,10 +34,14 @@ app.add_middleware(
 # === Request Model ===
 class Query(BaseModel):
     question: str
+    
+import logging
+logging.basicConfig(level=logging.INFO)
 
 @app.post("/ask")
 async def ask_question(query: Query):
-    # === Lazy Load to Save Memory ===
+    logging.info("Received query: %s", query.question)
+
     embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-MiniLM-L3-v2")
 
     chroma_client = chromadb.PersistentClient(
@@ -54,7 +58,7 @@ async def ask_question(query: Query):
 
     retriever = vectordb.as_retriever(
         search_type="mmr",
-        search_kwargs={"k": 2}  # smaller k to reduce memory usage
+        search_kwargs={"k": 1}  # smaller k to reduce memory usage
     )
 
     prompt_template = PromptTemplate.from_template("""
