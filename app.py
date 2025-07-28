@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 
-API_URL = "https://changi-airport-chatbot.onrender.com/ask"  # ✅ correct
+API_URL = "https://6887313def0ea37977f205df--voluble-custard-6ec933.netlify.app/ask" # ✅ correct
 
 st.set_page_config(page_title="Changi Airport Chatbot", page_icon="🛫")
 st.title("🛫 Changi Airport AI Chatbot")
